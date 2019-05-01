@@ -79,36 +79,9 @@ class ActionSubscription {
         return matchingActionsData;
     }
 
-    onNext(data) {
-        console.log(data);
-        const {
-            blockNum,
-            cursor,
-        } = data;
+    updateProgress(blockNum, cursor) {
         this.blockNum = blockNum;
         this.cursor = cursor;
-        this.next(data);
-    }
-
-    /**
-     * Listener called when new data arrives, should be overriden
-     * @param {} data payload
-     */
-    next(data) {
-
-    }
-
-    onError(error) {
-        console.log(error);
-        this.error(error);
-    }
-
-    /**
-     * Listener called when an error occurs, should be overriden
-     * @param {} error error
-     */
-    error(error) {
-
     }
 
 }

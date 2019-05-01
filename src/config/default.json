@@ -1,8 +1,0 @@
-{
-    // get eosws_token from: https://dfuse.io/#subscribe
-    "logLevel": "debug",
-    "useBlockProgress": true,
-    "apiKey": "server_d34dc9a715ac76a7a0293ee554067628",
-    "network": "mainnet",
-    "endpoint": "mainnet.eos.dfuse.io"
-}

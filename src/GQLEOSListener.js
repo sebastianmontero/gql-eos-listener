@@ -8,6 +8,7 @@ const { InMemoryCache } = require('apollo-cache-inmemory');
 const { createDfuseClient } = require('@dfuse/client');
 const { HexDecoder } = require('./service');
 const { EOSUtil } = require('./util');
+const { Observable } = require('rxjs');
 const ActionSubscription = require('./ActionSubscription');
 
 
@@ -23,14 +24,14 @@ class GQLEOSListener {
 
         console.log(config);
         this.decoder = new HexDecoder(`https://${endpoint}`);
-        this.dfuseClient = this.createDfuseClient(apiKey, network);
+        this.dfuseClient = this._createDfuseClient(apiKey, network);
         this.apolloClient = null;
         this.actionSubscriptions = [];
 
     }
 
 
-    createDfuseClient(apiKey, network) {
+    _createDfuseClient(apiKey, network) {
         return createDfuseClient({
             apiKey,
             network,
@@ -88,7 +89,7 @@ class GQLEOSListener {
         });
     }
 
-    async getApolloClient() {
+    async _getApolloClient() {
 
         if (!this.apolloClient) {
             console.log('Getting token...');
@@ -138,62 +139,61 @@ class GQLEOSListener {
         let actionSubscription = new ActionSubscription({
             query,
             matchingActionsData,
-            blockNum = 0,
+            blockNum,
             cursor,
-            irreversible = true,
+            irreversible,
             dbOps,
         });
 
         if (actionSubscription.hasDBOps()) {
-            actionSubscription.pDbOps = await this.preprocessDBOps(actionSubscription.dbOps);
+            actionSubscription.pDbOps = await this._preprocessDBOps(actionSubscription.dbOps);
         }
-        
-        const client = await this.getApolloClient();
 
+        const client = await this._getApolloClient();
+        const _this = this;
         console.log('Subscribing...');
 
-        client.subscribe({
-            query: actionSubscription.getGQL(),
-        }).subscribe({
-            start: subscription => console.log("started", subscription),
-            next: async value => {
-                //console.dir(value);
-                const {
-                    cursor,
-                    undo,
-                    trace: {
-                        block: {
-                            num: blockNum,
-                            timestamp: blockTime,
-                        },
-                        matchingActions
+        return Observable.create(function (observer) {
+            client.subscribe({
+                query: actionSubscription.getGQL(),
+            }).subscribe({
+                next: async value => {
+                    //console.dir(value);
+                    const {
+                        cursor,
+                        undo,
+                        trace: {
+                            block: {
+                                num: blockNum,
+                                timestamp: blockTime,
+                            },
+                            matchingActions
+                        }
+                    } = value.data.searchTransactionsForward;
+
+                    if (actionSubscription.hasDBOps()) {
+                        for (let action of matchingActions) {
+                            action.dbOps = await _this._extractDBOps(action.dbOps, actionSubscription.pDbOps);
+                        }
                     }
-                } = value.data.searchTransactionsForward;
 
-                if (actionSubscription.hasDBOps()) {
-                    for (let action of matchingActions) {
-                        action.dbOpResults = await this.extractDBOps(action.dbOps, actionSubscription.pDbOps);
+                    observer.next({
+                        cursor,
+                        undo,
+                        blockNum,
+                        blockTime,
+                        matchingActions,
+                    });
+                },
+                error: error => observer.error(error),
+                complete: error => observer.complete(error),
+            });
 
-                    }
-                }
-
-                actionSubscription.onNext({
-                    cursor,
-                    undo,
-                    blockNum,
-                    blockTime,
-                    matchingActions,
-                });
-            },
-            error: errorValue => console.log("error:", errorValue),
-            complete: () => {
-                console.log('Complete');
-            }
         });
 
     }
 
-    async extractDBOps(dbOps, requestedTables) {
+    async _extractDBOps(dbOps, requestedTables) {
         let results = {};
         console.log(requestedTables);
         if (requestedTables && dbOps) {
@@ -220,7 +220,7 @@ class GQLEOSListener {
         return results;
     }
 
-    async preprocessDBOps(dbOps) {
+    async _preprocessDBOps(dbOps) {
 
         dbOps = dbOps || [];
         let pDbOps = {};
@@ -235,29 +235,38 @@ class GQLEOSListener {
         return pDbOps;
     }
 
-    async start() {
-        const subs = new ActionSubscription({
-            query: "account:gftorderbook (db.table:buyorders OR db.table:sellorders)",
-            blockNum: 48940000,
-            dbOps: [{
-                account: "gftorderbook",
-                table: "buyorders",
-                type: "buyorder"
-            },
-            {
-                account: "gftorderbook",
-                table: "sellorders",
-                type: "sellorder"
-            }],
-        });
-        await this.actionSubscription(subs);
-    }
+    /*   async start() {
+          const subrs = await this.actionSubscription({
+              query: "account:gftorderbook (db.table:buyorders OR db.table:sellorders)",
+              blockNum: 48940000,
+              dbOps: [{
+                  account: "gftorderbook",
+                  table: "buyorders",
+                  type: "buyorder"
+              },
+              {
+                  account: "gftorderbook",
+                  table: "sellorders",
+                  type: "sellorder"
+              }],
+          })
+          subrs.subscribe({
+              start: subscription => console.log("started", subscription),
+              next: async value => {
+                  console.dir(value);
+              },
+              error: errorValue => console.log("error:", errorValue),
+              complete: () => {
+                  console.log('Complete');
+              }
+          });
+      } */
 
 }
 
-const listener = new GQLEOSListener(config);
+/* const listener = new GQLEOSListener(config);
 listener.start().then(() => {
     console.log('finished!');
 }).catch(error => {
     console.log('Error:', error);
-});
+}); */
