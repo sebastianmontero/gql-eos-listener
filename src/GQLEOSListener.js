@@ -234,39 +234,4 @@ class GQLEOSListener {
         }
         return pDbOps;
     }
-
-    /*   async start() {
-          const subrs = await this.actionSubscription({
-              query: "account:gftorderbook (db.table:buyorders OR db.table:sellorders)",
-              blockNum: 48940000,
-              dbOps: [{
-                  account: "gftorderbook",
-                  table: "buyorders",
-                  type: "buyorder"
-              },
-              {
-                  account: "gftorderbook",
-                  table: "sellorders",
-                  type: "sellorder"
-              }],
-          })
-          subrs.subscribe({
-              start: subscription => console.log("started", subscription),
-              next: async value => {
-                  console.dir(value);
-              },
-              error: errorValue => console.log("error:", errorValue),
-              complete: () => {
-                  console.log('Complete');
-              }
-          });
-      } */
-
 }
-
-/* const listener = new GQLEOSListener(config);
-listener.start().then(() => {
-    console.log('finished!');
-}).catch(error => {
-    console.log('Error:', error);
-}); */
