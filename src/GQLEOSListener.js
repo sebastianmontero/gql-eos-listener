@@ -1,6 +1,5 @@
 const ws = require('ws');
 const fetch = require('node-fetch');
-const config = require('config');
 const { SubscriptionClient } = require('subscriptions-transport-ws');
 const { WebSocketLink } = require('apollo-link-ws');
 const { ApolloClient } = require('apollo-client');
@@ -10,6 +9,7 @@ const { HexDecoder } = require('./service');
 const { EOSUtil } = require('./util');
 const { Observable } = require('rxjs');
 const ActionSubscription = require('./ActionSubscription');
+const { TraceStatuses } = require('./const');
 
 
 class GQLEOSListener {
@@ -103,7 +103,11 @@ class GQLEOSListener {
                     return { Authorization: `Bearer ${tokenInfo.token}` };
                 },
                 connectionCallback: (error, result) => {
-                    console.log("Connection call back:", error, result)
+                    if (error) {
+                        console.log("Error connecting to graphQL endpoint", error);
+                    } else {
+                        console.log("Connected to the graphQL endpoint!");
+                    }
                 }
             }, ws);
 
@@ -130,19 +134,36 @@ class GQLEOSListener {
     async actionSubscription({
         query,
         matchingActionsData,
+        executedActionsData,
         blockNum = 0,
         cursor,
         irreversible = true,
         dbOps,
+        serialized = false,
+        searches,
     }) {
-
-        let actionSubscription = new ActionSubscription({
+        console.log('Subscription Data:');
+        console.dir({
             query,
             matchingActionsData,
+            executedActionsData,
             blockNum,
             cursor,
             irreversible,
             dbOps,
+            serialized,
+            searches,
+        });
+        let actionSubscription = new ActionSubscription({
+            query,
+            matchingActionsData,
+            executedActionsData,
+            blockNum,
+            cursor,
+            irreversible,
+            dbOps,
+            serialized,
+            searches,
         });
 
         if (actionSubscription.hasDBOps()) {
@@ -162,14 +183,21 @@ class GQLEOSListener {
                     const {
                         cursor,
                         undo,
+                        trace,
                         trace: {
+                            status,
                             block: {
                                 num: blockNum,
                                 timestamp: blockTime,
                             },
-                            matchingActions
+                            matchingActions,
+                            executedActions,
                         }
                     } = value.data.searchTransactionsForward;
+
+                    if (!TraceStatuses.wasExecuted(status)) {
+                        return;
+                    }
 
                     if (actionSubscription.hasDBOps()) {
                         for (let action of matchingActions) {
@@ -177,13 +205,36 @@ class GQLEOSListener {
                         }
                     }
 
-                    observer.next({
-                        cursor,
-                        undo,
-                        blockNum,
-                        blockTime,
-                        matchingActions,
-                    });
+                    let queryResults = actionSubscription.search(trace);
+
+                    if (actionSubscription.serialized) {
+                        for (let matchingAction of matchingActions) {
+                            observer.next({
+                                cursor,
+                                undo,
+                                blockNum,
+                                blockTime,
+                                actionData: matchingAction,
+                            });
+                        }
+                    } else {
+                        let payload = {
+                            cursor,
+                            undo,
+                            blockNum,
+                            blockTime,
+                            matchingActions,
+                        };
+                        if (executedActions) {
+                            payload.executedActions = executedActions;
+                        }
+                        if (queryResults) {
+                            payload.queryResults = queryResults;
+                        }
+                        observer.next(payload);
+                    }
+
+
                 },
                 error: error => observer.error(error),
                 complete: error => observer.complete(error),
@@ -195,12 +246,10 @@ class GQLEOSListener {
 
     async _extractDBOps(dbOps, requestedTables) {
         let results = {};
-        console.log(requestedTables);
         if (requestedTables && dbOps) {
             for (let dbOp of dbOps) {
                 const { key: { code, table } } = dbOp;
                 const tablePath = EOSUtil.getTypePath(code, table);
-                console.log(tablePath);
                 let typePath = requestedTables[tablePath];
                 if (typePath) {
                     let result = { ...dbOp };
@@ -234,4 +283,7 @@ class GQLEOSListener {
         }
         return pDbOps;
     }
+
 }
+
+module.exports = GQLEOSListener;
