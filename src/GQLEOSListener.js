@@ -244,6 +244,12 @@ class GQLEOSListener {
 
     }
 
+    async stop() {
+        if (this.apolloClient) {
+            return await this.apolloClient.stop();
+        }
+    }
+
     async _extractDBOps(dbOps, requestedTables) {
         let results = {};
         if (requestedTables && dbOps) {
