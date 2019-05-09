@@ -2,7 +2,7 @@ const GQLEOSListener = require('./GQLEOSListener');
 
 class RunGQLEOSListener {
 
-    /* async start() {
+    async start() {
 
         const listener = new GQLEOSListener({
             "apiKey": "server_d34dc9a715ac76a7a0293ee554067628",
@@ -35,9 +35,9 @@ class RunGQLEOSListener {
                 console.log('Complete');
             }
         });
-    } */
+    }
 
-    async start() {
+    /* async start() {
 
         const listener = new GQLEOSListener({
             "apiKey": "server_d34dc9a715ac76a7a0293ee554067628",
@@ -85,7 +85,7 @@ class RunGQLEOSListener {
                 console.log('Complete');
             }
         });
-    }
+    } */
 }
 
 const listener = new RunGQLEOSListener();

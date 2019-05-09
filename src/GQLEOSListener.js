@@ -214,6 +214,7 @@ class GQLEOSListener {
                                 undo,
                                 blockNum,
                                 blockTime,
+                                actionSeq: matchingAction.seq,
                                 actionData: matchingAction,
                             });
                         }
