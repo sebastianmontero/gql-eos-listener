@@ -23,12 +23,13 @@ class RunGQLEOSListener {
                 table: "sellorders",
                 type: "sellorder"
             }],
+            receiverEqualToAccountFilter: true,
             serialized: true,
         })
         subrs.subscribe({
             start: subscription => console.log("started", subscription),
             next: async value => {
-                console.dir(value);
+                //console.dir(value);
             },
             error: errorValue => console.log("error:", errorValue),
             complete: () => {

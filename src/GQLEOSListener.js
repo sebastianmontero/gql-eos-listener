@@ -139,6 +139,7 @@ class GQLEOSListener {
         cursor,
         irreversible = true,
         dbOps,
+        receiverEqualToAccountFilter = false,
         serialized = false,
         searches,
     }) {
@@ -151,6 +152,7 @@ class GQLEOSListener {
             cursor,
             irreversible,
             dbOps,
+            receiverEqualToAccountFilter,
             serialized,
             searches,
         });
@@ -162,6 +164,7 @@ class GQLEOSListener {
             cursor,
             irreversible,
             dbOps,
+            receiverEqualToAccountFilter,
             serialized,
             searches,
         });

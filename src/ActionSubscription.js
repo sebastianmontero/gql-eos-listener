@@ -21,10 +21,10 @@ class ActionSubscription {
         this.cursor = cursor;
         this.irreversible = irreversible;
         this.dbOps = dbOps;
+        this.receiverEqualToAccountFilter = receiverEqualToAccountFilter;
         this.serialized = serialized;
         this.matchingActionsData = this._getMatchingActionsData(matchingActionsData);
         this.executedActionsData = this._getActionsData('executedActions', executedActionsData);
-        this.receiverEqualToAccountFilter = receiverEqualToAccountFilter;
         this.searches = this._preprocessSearches(searches);
     }
 
@@ -123,6 +123,7 @@ class ActionSubscription {
 
     filterActions(actions) {
         if (this.receiverEqualToAccountFilter) {
+            console.log(actions);
             let filteredActions = [];
             for (let action of actions) {
                 const { account, receiver } = action;
