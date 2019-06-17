@@ -13,6 +13,7 @@ class ActionSubscription {
         irreversible = true,
         dbOps,
         serialized = false,
+        receiverEqualToAccountFilter = false,
         searches,
     }) {
 
@@ -118,6 +119,20 @@ class ActionSubscription {
     updateProgress(blockNum, cursor) {
         this.blockNum = blockNum;
         this.cursor = cursor;
+    }
+
+    filterActions(actions) {
+        if (this.receiverEqualToAccountFilter) {
+            let filteredActions = [];
+            for (let action of actions) {
+                const { account, receiver } = action;
+                if (account === receiver) {
+                    filteredActions.push(action);
+                }
+            }
+            return filteredActions;
+        }
+        return actions;
     }
 
 }

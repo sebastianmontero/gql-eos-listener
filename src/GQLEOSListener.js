@@ -180,6 +180,8 @@ class GQLEOSListener {
             }).subscribe({
                 next: async value => {
                     //console.dir(value);
+                    const { searchTransactionsForward } = value.data;
+
                     const {
                         cursor,
                         undo,
@@ -190,14 +192,17 @@ class GQLEOSListener {
                                 num: blockNum,
                                 timestamp: blockTime,
                             },
-                            matchingActions,
                             executedActions,
                         }
-                    } = value.data.searchTransactionsForward;
+                    } = searchTransactionsForward;
+
+                    let { matchingActions } = trace;
 
                     if (!TraceStatuses.wasExecuted(status)) {
                         return;
                     }
+
+                    matchingActions = actionSubscription.filterActions(matchingActions);
 
                     if (actionSubscription.hasDBOps()) {
                         for (let action of matchingActions) {
