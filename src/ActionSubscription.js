@@ -123,7 +123,6 @@ class ActionSubscription {
 
     filterActions(actions) {
         if (this.receiverEqualToAccountFilter) {
-            console.log(actions);
             let filteredActions = [];
             for (let action of actions) {
                 const { account, receiver } = action;
