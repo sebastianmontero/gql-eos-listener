@@ -1,5 +1,4 @@
 const { gql } = require('apollo-boost');
-const { Util } = require('./util');
 const Search = require('./Search');
 
 class ActionSubscription {
@@ -25,6 +24,7 @@ class ActionSubscription {
         this.serialized = serialized;
         this.matchingActionsData = this._getMatchingActionsData(matchingActionsData);
         this.executedActionsData = this._getActionsData('executedActions', executedActionsData);
+        this.receiverEqualToAccountFilter = receiverEqualToAccountFilter;
         this.searches = this._preprocessSearches(searches);
     }
 
