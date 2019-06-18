@@ -16,6 +16,7 @@ const { TraceStatuses } = require('./const');
 class GQLEOSListener extends EventEmitter {
 
     constructor(config) {
+        super();
         this.config = config;
         const {
             apiKey,
