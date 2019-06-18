@@ -5,6 +5,7 @@ const { WebSocketLink } = require('apollo-link-ws');
 const { ApolloClient } = require('apollo-client');
 const { InMemoryCache } = require('apollo-cache-inmemory');
 const { createDfuseClient } = require('@dfuse/client');
+const { EventEmitter } = require('events');
 const { HexDecoder } = require('./service');
 const { EOSUtil } = require('./util');
 const { Observable } = require('rxjs');
@@ -12,7 +13,7 @@ const ActionSubscription = require('./ActionSubscription');
 const { TraceStatuses } = require('./const');
 
 
-class GQLEOSListener {
+class GQLEOSListener extends EventEmitter {
 
     constructor(config) {
         this.config = config;
@@ -113,14 +114,17 @@ class GQLEOSListener {
 
             subscriptionClient.onReconnected(() => {
                 console.log('Reconnected!');
+                this.emit('reconnected');
             });
 
             subscriptionClient.onError(() => {
                 console.log('Connection Error');
+                this.emit('error');
             });
 
             subscriptionClient.onDisconnected(() => {
                 console.log('Disconnected!');
+                this.emit('disconnected');
             });
 
             console.log('Creating WebSocketLink...');
