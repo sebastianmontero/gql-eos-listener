@@ -1,5 +1,6 @@
-const ws = require('ws');
-const fetch = require('node-fetch');
+const { isNode } = require('browser-or-node');
+const ws = isNode && require('ws');
+const fetch = isNode ? require('node-fetch') : undefined;
 const { SubscriptionClient } = require('subscriptions-transport-ws');
 const { WebSocketLink } = require('apollo-link-ws');
 const { ApolloClient } = require('apollo-client');
@@ -34,11 +35,12 @@ class GQLEOSListener extends EventEmitter {
 
 
     _createDfuseClient(apiKey, network) {
+
         return createDfuseClient({
             apiKey,
             network,
             httpClientOptions: {
-                fetch: fetch
+                fetch,
             },
             streamClientOptions: {
                 socketOptions: {
@@ -71,10 +73,15 @@ class GQLEOSListener extends EventEmitter {
                         *
                         * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/WebSocket#Parameters
                         */
-                        const webSocket = new WebSocketClient(url, {
-                            handshakeTimeout: 30 * 1000, // 30s
-                            maxPayload: 200 * 1024 * 1000 * 1000 // 200Mb
-                        })
+                        let webSocket = null;
+                        if (isNode) {
+                            webSocket = new WebSocketClient(url, {
+                                handshakeTimeout: 30 * 1000, // 30s
+                                maxPayload: 200 * 1024 * 1000 * 1000 // 200Mb
+                            });
+                        } else {
+                            webSocket = new WebSocket(url);
+                        }
 
                         const onUpgrade = (response) => {
                             console.log("Socket upgrade response status code.", response.statusCode)

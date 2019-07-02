@@ -2,8 +2,14 @@ const { Api, JsonRpc } = require('eosjs');
 const fetch = require('node-fetch');
 const { JsSignatureProvider } = require('eosjs/dist/eosjs-jssig');
 const { getTypesFromAbi, createInitialTypes, hexToUint8Array, SerialBuffer } = require('eosjs/dist/eosjs-serialize');
-const { TextEncoder, TextDecoder } = require('util');
+const { isNode } = require('browser-or-node');
 const { EOSUtil } = require('../util');
+
+let TextEncoder, TextDecoder;
+if (isNode) {
+    ({ TextEncoder, TextDecoder } = require('util'));
+}
+
 
 
 class HexDecoder {
@@ -11,12 +17,15 @@ class HexDecoder {
     constructor(endpoint) {
         this._abiMap = {};
         this._typeMap = {};
-        this._eosJsApi = new Api({
+        let props = {
             rpc: new JsonRpc(endpoint, { fetch, }),
             signatureProvider: new JsSignatureProvider([]),
-            textDecoder: new TextDecoder(),
-            textEncoder: new TextEncoder()
-        });
+        };
+        if (isNode) {
+            props.textDecoder = new TextDecoder();
+            props.textEncoder = new TextDecoder();
+        }
+        this._eosJsApi = new Api(props);
     }
 
     async addType(typePath) {
