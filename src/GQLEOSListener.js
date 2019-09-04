@@ -190,8 +190,10 @@ class GQLEOSListener extends EventEmitter {
         console.log('Subscribing...');
 
         return Observable.create(function (observer) {
+            const query = actionSubscription.getGQL();
+            console.log('Query: ', query);
             client.subscribe({
-                query: actionSubscription.getGQL(),
+                query,
             }).subscribe({
                 next: async value => {
                     //console.dir(value);
