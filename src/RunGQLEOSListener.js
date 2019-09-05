@@ -25,6 +25,7 @@ class RunGQLEOSListener {
             }],
             receiverEqualToAccountFilter: true,
             serialized: true,
+            startFromLatestAction: true,
         })
         subrs.subscribe({
             start: subscription => console.log("started", subscription),

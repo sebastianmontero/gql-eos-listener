@@ -61,6 +61,26 @@ class ActionSubscription {
         return gql(query);
     }
 
+    getLatestActionGQL() {
+        const query = ` query {
+            searchTransactionsBackward(
+                    query: "${this.query}" 
+                    irreversibleOnly:${this.irreversible}
+                    limit: 1
+            ) {
+                results {
+                    trace {
+                      block {
+                        num
+                      }
+                    }
+                }
+            }
+        }`
+        console.log('Latest Action final query: ', query);
+        return gql(query);
+    }
+
     _getMatchingActionsData(matchingActionsData) {
 
         if (!matchingActionsData) {

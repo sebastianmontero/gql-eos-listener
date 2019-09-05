@@ -152,6 +152,7 @@ class GQLEOSListener extends EventEmitter {
         serialized = false,
         searches,
         raw = false,
+        startFromLatestAction = false, //If true the subscription starts from latestAction called
     }) {
         console.log('Subscription Data:');
         console.dir({
@@ -184,6 +185,13 @@ class GQLEOSListener extends EventEmitter {
         }
 
         const client = await this._getApolloClient();
+        if (startFromLatestAction) {
+            const latestActionBlockNum = await this.getLatestActionBlockNum(client, actionSubscription);
+            if (latestActionBlockNum) {
+                actionSubscription.blockNum = latestActionBlockNum;
+            }
+        }
+
         const _this = this;
         console.log('Subscribing...');
 
@@ -222,7 +230,7 @@ class GQLEOSListener extends EventEmitter {
 
                     if (actionSubscription.shouldFilterDBOps()) {
                         for (let action of matchingActions) {
-                            action.dbOps = await _this._extractDBOps(action.dbOps, actionSubscription.pDbOps);
+                            action.dbOps = _this._extractDBOps(action.dbOps, actionSubscription.pDbOps);
                         }
                     }
 
@@ -266,13 +274,30 @@ class GQLEOSListener extends EventEmitter {
 
     }
 
+    async getLatestActionBlockNum(client, actionSubscription) {
+        console.log('Getting latest action block num...');
+        const { data: { searchTransactionsBackward: { results } } } = await client.query(
+            {
+                query: actionSubscription.getLatestActionGQL(),
+            },
+        );
+
+        if (results.length) {
+            const { trace: { block: { num: blockNum } } } = results[0];
+            console.log('Got latest action block num: ', blockNum);
+            return blockNum;
+        }
+        console.log('No action found for the query specified.');
+        return null;
+    }
+
     async stop() {
         if (this.apolloClient) {
             return await this.apolloClient.stop();
         }
     }
 
-    async _extractDBOps(dbOps, requestedTables) {
+    _extractDBOps(dbOps, requestedTables) {
         let results = {};
         if (requestedTables && dbOps) {
             for (let dbOp of dbOps) {
