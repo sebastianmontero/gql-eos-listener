@@ -29,7 +29,7 @@ class RunGQLEOSListener {
         subrs.subscribe({
             start: subscription => console.log("started", subscription),
             next: async value => {
-                console.dir(value);
+                console.log(JSON.stringify(value, null, 2));
             },
             error: errorValue => console.log("error:", errorValue),
             complete: () => {

@@ -7,7 +7,6 @@ const { ApolloClient } = require('apollo-client');
 const { InMemoryCache } = require('apollo-cache-inmemory');
 const { createDfuseClient } = require('@dfuse/client');
 const { EventEmitter } = require('events');
-const { HexDecoder } = require('./service');
 const { EOSUtil } = require('./util');
 const { Observable } = require('rxjs');
 const ActionSubscription = require('./ActionSubscription');
@@ -22,11 +21,9 @@ class GQLEOSListener extends EventEmitter {
         const {
             apiKey,
             network,
-            endpoint,
         } = config;
 
         console.log(config);
-        this.decoder = new HexDecoder(`https://${endpoint}`);
         this.dfuseClient = this._createDfuseClient(apiKey, network);
         this.apolloClient = null;
         this.actionSubscriptions = [];
@@ -154,6 +151,7 @@ class GQLEOSListener extends EventEmitter {
         receiverEqualToAccountFilter = false,
         serialized = false,
         searches,
+        raw = false,
     }) {
         console.log('Subscription Data:');
         console.dir({
@@ -181,7 +179,7 @@ class GQLEOSListener extends EventEmitter {
             searches,
         });
 
-        if (actionSubscription.hasDBOps()) {
+        if (actionSubscription.shouldFilterDBOps()) {
             actionSubscription.pDbOps = await this._preprocessDBOps(actionSubscription.dbOps);
         }
 
@@ -191,14 +189,15 @@ class GQLEOSListener extends EventEmitter {
 
         return Observable.create(function (observer) {
             const query = actionSubscription.getGQL();
-            console.log('Query: ', query);
             client.subscribe({
                 query,
             }).subscribe({
                 next: async value => {
                     //console.dir(value);
                     const { searchTransactionsForward } = value.data;
-
+                    if (raw) {
+                        return observer.next(searchTransactionsForward);
+                    }
                     const {
                         cursor,
                         undo,
@@ -221,7 +220,7 @@ class GQLEOSListener extends EventEmitter {
 
                     matchingActions = actionSubscription.filterActions(matchingActions);
 
-                    if (actionSubscription.hasDBOps()) {
+                    if (actionSubscription.shouldFilterDBOps()) {
                         for (let action of matchingActions) {
                             action.dbOps = await _this._extractDBOps(action.dbOps, actionSubscription.pDbOps);
                         }
@@ -282,11 +281,13 @@ class GQLEOSListener extends EventEmitter {
                 let typePath = requestedTables[tablePath];
                 if (typePath) {
                     let result = { ...dbOp };
-                    if (dbOp.oldData) {
-                        result.oldData = await this.decoder.hexToJson(typePath, dbOp.oldData);
+                    if (dbOp.oldJSON.object) {
+                        result.oldData = dbOp.oldJSON.object;
+                        delete result.oldJSON;
                     }
-                    if (dbOp.newData) {
-                        result.newData = await this.decoder.hexToJson(typePath, dbOp.newData);
+                    if (dbOp.oldJSON.object) {
+                        result.newData = dbOp.oldJSON.object;
+                        delete result.newJSON;
                     }
                     if (!results[tablePath]) {
                         results[tablePath] = [];
@@ -307,8 +308,6 @@ class GQLEOSListener extends EventEmitter {
             const typePath = EOSUtil.getTypePath(dbOp.account, dbOp.type);
             const tablePath = EOSUtil.getTypePath(dbOp.account, dbOp.table);
             pDbOps[tablePath] = typePath;
-            await this.decoder.addType(typePath);
-
         }
         return pDbOps;
     }

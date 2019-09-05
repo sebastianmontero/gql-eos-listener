@@ -32,8 +32,12 @@ class ActionSubscription {
         return !!this.dbOps;
     }
 
+    shouldFilterDBOps() {
+        return Array.isArray(this.dbOps);
+    }
+
     getGQL() {
-        return gql` subscription {
+        const query = ` subscription {
             searchTransactionsForward(
                     query: "${this.query}" 
                     lowBlockNum:${this.blockNum}
@@ -41,7 +45,6 @@ class ActionSubscription {
                     ${this.cursor ? `cursor:"${this.cursor}"` : ''}
             ) {
                 cursor
-                undo
                 trace {
                     id
                     status
@@ -53,7 +56,9 @@ class ActionSubscription {
                     ${this.executedActionsData}
                 }
             }
-        }`;
+        }`
+        console.log('Final query: ', query);
+        return gql(query);
     }
 
     _getMatchingActionsData(matchingActionsData) {
@@ -78,8 +83,12 @@ class ActionSubscription {
                             scope
                             key
                         }
-                    oldData
-                    newData
+                    oldJSON{
+                        object
+                    }
+                    newJSON{
+                        object
+                    }
                 }`;
         }
 
